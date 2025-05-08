@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import type { Device } from '@/types/device';
 import { api } from '@/services/api';
 
@@ -10,65 +10,66 @@ export const useDeviceStore = defineStore('device', () => {
 
   async function fetchDevices() {
     loading.value = true;
+    error.value = null;
     try {
-      devices.value = await api.getDevices();
-      error.value = null;
+      const response = await api.getDevices();
+      // 将设备数组转换为以ID为键的对象
+      devices.value = response.reduce((acc, device) => {
+        acc[device.id] = device;
+        return acc;
+      }, {} as Record<string, Device>);
     } catch (e) {
-      error.value = 'Failed to fetch devices';
-      console.error(e);
+      error.value = e instanceof Error ? e.message : '获取设备列表失败';
     } finally {
       loading.value = false;
     }
   }
 
   async function addDevice(type: string, id: string) {
-    loading.value = true;
+    error.value = null;
     try {
-      const result = await api.addDevice(type, id);
-      if ('error' in result) {
-        error.value = result.error;
-      } else {
-        await fetchDevices();
+      const response = await api.addDevice(type, id);
+      if ('error' in response) {
+        error.value = response.error;
+        return false;
       }
+      await fetchDevices();
+      return true;
     } catch (e) {
-      error.value = 'Failed to add device';
-      console.error(e);
-    } finally {
-      loading.value = false;
+      error.value = e instanceof Error ? e.message : '添加设备失败';
+      return false;
     }
   }
 
   async function removeDevice(id: string) {
-    loading.value = true;
+    error.value = null;
     try {
-      const result = await api.removeDevice(id);
-      if ('error' in result) {
-        error.value = result.error;
-      } else {
-        await fetchDevices();
+      const response = await api.removeDevice(id);
+      if ('error' in response) {
+        error.value = response.error;
+        return false;
       }
+      await fetchDevices();
+      return true;
     } catch (e) {
-      error.value = 'Failed to remove device';
-      console.error(e);
-    } finally {
-      loading.value = false;
+      error.value = e instanceof Error ? e.message : '删除设备失败';
+      return false;
     }
   }
 
   async function sendCommand(id: string, command: any) {
-    loading.value = true;
+    error.value = null;
     try {
-      const result = await api.sendCommand(id, command);
-      if ('error' in result) {
-        error.value = result.error;
-      } else {
-        await fetchDevices();
+      const response = await api.sendCommand(id, command);
+      if ('error' in response) {
+        error.value = response.error;
+        return false;
       }
+      await fetchDevices();
+      return true;
     } catch (e) {
-      error.value = 'Failed to send command';
-      console.error(e);
-    } finally {
-      loading.value = false;
+      error.value = e instanceof Error ? e.message : '发送命令失败';
+      return false;
     }
   }
 
@@ -79,6 +80,6 @@ export const useDeviceStore = defineStore('device', () => {
     fetchDevices,
     addDevice,
     removeDevice,
-    sendCommand,
+    sendCommand
   };
 }); 

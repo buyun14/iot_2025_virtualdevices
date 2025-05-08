@@ -1,41 +1,51 @@
 """
 设备管理服务
 """
-import json
-from typing import Dict, Any, Type
+from typing import Dict, Any, Optional, List
 import paho.mqtt.client as mqtt
-from ..models.base import BaseDevice
 from ..models.light import Light
-# 导入其他设备模型...
+from ..models.thermostat import Thermostat
+from ..models.doorlock import DoorLock
+from ..models.blind import Blind
+from ..models.ac import AirConditioner
+from ..models.smoke_detector import SmokeDetector
+from ..models.fan import Fan
+from ..models.smart_plug import SmartPlug
 
 class DeviceManager:
-    """设备管理服务类"""
+    """设备管理器类"""
     
-    def __init__(self, mqtt_client: mqtt.Client, device_prefix: str):
+    def __init__(self, mqtt_client: mqtt.Client, device_prefix: str = "device"):
         """
         初始化设备管理器
         
         Args:
             mqtt_client (mqtt.Client): MQTT客户端实例
-            device_prefix (str): MQTT主题前缀
+            device_prefix (str): 设备主题前缀
         """
-        self.devices: Dict[str, BaseDevice] = {}
         self.mqtt_client = mqtt_client
         self.device_prefix = device_prefix
+        self.devices: Dict[str, Any] = {}
         
         # 设备类型映射
-        self.device_types: Dict[str, Type[BaseDevice]] = {
+        self.device_types = {
             "light": Light,
-            # 添加其他设备类型...
+            "thermostat": Thermostat,
+            "doorlock": DoorLock,
+            "blind": Blind,
+            "ac": AirConditioner,
+            "smoke_detector": SmokeDetector,
+            "fan": Fan,
+            "smart_plug": SmartPlug
         }
     
-    def add_device(self, device_type: str, device_id: str) -> bool:
+    def add_device(self, device_id: str, device_type: str) -> bool:
         """
         添加新设备
         
         Args:
-            device_type (str): 设备类型
             device_id (str): 设备ID
+            device_type (str): 设备类型
             
         Returns:
             bool: 是否添加成功
@@ -46,37 +56,27 @@ class DeviceManager:
         if device_type not in self.device_types:
             return False
         
-        # 创建设备实例
         device_class = self.device_types[device_type]
         self.devices[device_id] = device_class(device_id)
-        
-        # 订阅设备控制主题
-        control_topic = f"{self.device_prefix}/control/{device_id}"
-        self.mqtt_client.subscribe(control_topic)
-        
         return True
     
     def remove_device(self, device_id: str) -> bool:
         """
-        删除设备
+        移除设备
         
         Args:
             device_id (str): 设备ID
             
         Returns:
-            bool: 是否删除成功
+            bool: 是否移除成功
         """
         if device_id not in self.devices:
             return False
         
-        # 取消订阅设备控制主题
-        control_topic = f"{self.device_prefix}/control/{device_id}"
-        self.mqtt_client.unsubscribe(control_topic)
-        
         del self.devices[device_id]
         return True
     
-    def get_device(self, device_id: str) -> BaseDevice:
+    def get_device(self, device_id: str) -> Optional[Any]:
         """
         获取设备实例
         
@@ -84,21 +84,25 @@ class DeviceManager:
             device_id (str): 设备ID
             
         Returns:
-            BaseDevice: 设备实例
+            Optional[Any]: 设备实例，如果不存在则返回None
         """
         return self.devices.get(device_id)
     
-    def get_all_devices(self) -> Dict[str, Dict[str, Any]]:
+    def get_all_devices(self) -> List[Dict[str, Any]]:
         """
         获取所有设备状态
         
         Returns:
-            Dict[str, Dict[str, Any]]: 设备状态字典
+            List[Dict[str, Any]]: 设备状态列表
         """
-        return {
-            device_id: device.to_dict()
+        return [
+            {
+                "id": device_id,
+                "type": device.__class__.__name__.lower(),
+                "state": device.get_state()
+            }
             for device_id, device in self.devices.items()
-        }
+        ]
     
     def handle_command(self, device_id: str, command: Dict[str, Any]) -> bool:
         """
@@ -116,10 +120,10 @@ class DeviceManager:
             return False
         
         device.handle_command(command)
-        self.publish_status(device_id)
+        self.publish_device_status(device_id)
         return True
     
-    def publish_status(self, device_id: str) -> None:
+    def publish_device_status(self, device_id: str) -> None:
         """
         发布设备状态
         
@@ -130,11 +134,15 @@ class DeviceManager:
         if not device:
             return
         
-        topic = f"{self.device_prefix}/status/{device_id}"
-        payload = device.to_dict()
-        self.mqtt_client.publish(topic, json.dumps(payload))
+        topic = f"{self.device_prefix}/{device_id}/status"
+        status = {
+            "id": device_id,
+            "type": device.__class__.__name__.lower(),
+            "state": device.get_state()
+        }
+        self.mqtt_client.publish(topic, str(status))
     
     def publish_all_status(self) -> None:
         """发布所有设备状态"""
         for device_id in self.devices:
-            self.publish_status(device_id) 
+            self.publish_device_status(device_id) 

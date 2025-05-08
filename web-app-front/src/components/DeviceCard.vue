@@ -1,4 +1,4 @@
-`<template>
+<template>
     <div class="col-md-4 mb-4">
       <div class="card device-card">
         <div class="card-body">
@@ -9,18 +9,18 @@
           </div>
           
           <h5 class="card-title text-center">
-            <span :class="['status-indicator', device.online ? 'status-online' : 'status-offline']"></span>
+            <span :class="['status-indicator', device.state.on ? 'status-online' : 'status-offline']"></span>
             {{ id }}
           </h5>
           
           <div class="card-text">
-            <template v-for="(value, key) in device" :key="key">
-              <template v-if="!['type', 'online', 'last_update', 'error_state'].includes(key as string)">
+            <template v-for="(value, key) in device.state" :key="key">
+              <template v-if="!['type', 'online', 'last_update', 'error_state'].includes(key)">
                 <div class="d-flex justify-content-between align-items-center mb-1">
-                  <span class="status-label">{{ STATUS_TRANSLATIONS[key as string] || key }}</span>
-                  <span class="status-value">{{ formatValue(key as string, value) }}</span>
+                  <span class="status-label">{{ STATUS_TRANSLATIONS[key] || key }}</span>
+                  <span class="status-value">{{ formatValue(key, value) }}</span>
                 </div>
-                <div v-if="typeof value === 'number' && (key as string).includes('level')" class="progress mb-2">
+                <div v-if="typeof value === 'number' && key.includes('level')" class="progress mb-2">
                   <div
                     class="progress-bar"
                     role="progressbar"
@@ -34,12 +34,8 @@
             </template>
           </div>
           
-          <div class="last-update mt-2">
-            最后更新: {{ new Date(device.last_update).toLocaleString() }}
-          </div>
-          
-          <div v-if="device.error_state" class="error-state mt-2">
-            {{ device.error_state }}
+          <div v-if="device.state.error_state" class="error-state mt-2">
+            {{ device.state.error_state }}
           </div>
           
           <div class="mt-3 text-center">
@@ -53,7 +49,7 @@
   
   <script setup lang="ts">
   import { DEVICE_ICONS, STATUS_TRANSLATIONS } from '@/constants/device';
-  import type { Device } from '@/types/device';
+  import type { Device, DeviceState } from '@/types/device';
   import { useDeviceStore } from '@/stores/device';
   
   const props = defineProps<{
@@ -67,7 +63,7 @@
   
   const deviceStore = useDeviceStore();
   
-  function formatValue(key: string, value: any): string {
+  function formatValue(key: keyof DeviceState, value: any): string {
     if (typeof value === 'boolean') {
       return value ? '是' : '否';
     }
@@ -85,6 +81,9 @@
     }
     if (key.includes('current') && typeof value === 'number') {
       return `${value}A`;
+    }
+    if (key === 'state' && typeof value === 'string') {
+      return value === 'on' ? '开启' : '关闭';
     }
     return String(value);
   }
@@ -148,11 +147,6 @@
     position: absolute;
     top: 1rem;
     right: 1rem;
-  }
-  
-  .last-update {
-    font-size: 0.75rem;
-    color: #6c757d;
   }
   
   .error-state {

@@ -1,19 +1,45 @@
-export type DeviceType = 
-  | 'light'
-  | 'thermostat'
-  | 'doorlock'
-  | 'blind'
-  | 'ac'
-  | 'smoke_detector'
-  | 'fan'
-  | 'plug';
+import type { DeviceType } from '@/constants/device';
+
+export interface DeviceState {
+  on?: boolean;
+  state?: string;
+  brightness?: number;
+  color_temp?: number;
+  power_consumption?: number;
+  temp?: number;
+  mode?: string;
+  fan_speed?: string;
+  swing?: boolean;
+  locked?: boolean;
+  battery_level?: number;
+  last_lock_time?: string;
+  last_unlock_time?: string;
+  tamper_alert?: boolean;
+  position?: number;
+  tilt?: number;
+  moving?: boolean;
+  last_move_time?: string;
+  alarm?: boolean;
+  smoke_level?: number;
+  last_test_time?: string | null;
+  speed?: number;
+  oscillate?: boolean;
+  timer?: number;
+  voltage?: number;
+  current?: number;
+  schedule?: Array<{
+    time: string;
+    action: string;
+  }>;
+  error_state?: string;
+  online?: boolean;
+  last_update?: string;
+}
 
 export interface Device {
+  id: string;
   type: DeviceType;
-  online: boolean;
-  last_update: string;
-  error_state?: string;
-  [key: string]: any;
+  state: DeviceState;
 }
 
 export interface DeviceCommand {
@@ -24,11 +50,11 @@ export interface DeviceCommand {
 export interface DeviceControl {
   command: string;
   label: string;
-  type?: 'range' | 'number' | 'select';
-  class?: string;
+  type?: 'number' | 'range' | 'select';
+  param?: string;
   min?: number;
   max?: number;
   step?: number;
-  param?: string;
   options?: string[];
+  class?: string;
 } 

@@ -103,12 +103,12 @@
     </div>
 
     <!-- 设备控制模态框 -->
-    <div class="modal fade" id="controlModal" tabindex="-1">
+    <div class="modal fade" id="controlModal" tabindex="-1" aria-labelledby="controlModalLabel">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">设备控制</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <h5 class="modal-title" id="controlModalLabel">设备控制</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
                 </div>
                 <div class="modal-body" id="controlModalBody">
                     <!-- 控制选项将在这里动态添加 -->
@@ -157,15 +157,15 @@
                 { command: 'set_position', label: '设置位置', type: 'range', min: 0, max: 100 },
                 { command: 'set_tilt', label: '设置倾斜角度', type: 'range', min: 0, max: 180 }
             ],
-            ac: [
+            airconditioner: [
                 { command: 'turn_on', label: '开启', class: 'btn-success' },
                 { command: 'turn_off', label: '关闭', class: 'btn-danger' },
-                { command: 'set_temp', label: '设置温度', type: 'number', min: 16, max: 30, step: 0.5, param: 'temperature' },
+                { command: 'set_temp', label: '设置温度', type: 'number', min: 16, max: 30, step: 0.5, param: 'temp' },
                 { command: 'set_mode', label: '设置模式', type: 'select', options: ['cool', 'heat', 'dry', 'fan'], param: 'mode' },
-                { command: 'set_fan_speed', label: '设置风速', type: 'select', options: ['auto', 'low', 'medium', 'high'], param: 'speed' },
+                { command: 'set_fan_speed', label: '设置风速', type: 'select', options: ['auto', 'low', 'medium', 'high'], param: 'fan_speed' },
                 { command: 'toggle_swing', label: '切换摆风', class: 'btn-info' }
             ],
-            smoke_detector: [
+            smokedetector: [
                 { command: 'reset', label: '重置报警', class: 'btn-warning' },
                 { command: 'test', label: '测试', class: 'btn-info' }
             ],
@@ -355,18 +355,35 @@
 
         // 显示控制模态框
         function showControlModal(deviceId, deviceType) {
+            console.log('Opening control modal for device:', { deviceId, deviceType });
             const modalBody = document.getElementById('controlModalBody');
             modalBody.innerHTML = '';
             
             // 获取当前设备状态
-            fetch(`/api/devices`)
-                .then(response => response.json())
-                .then(devices => {
-                    const device = devices[deviceId];
-                    if (!device) return;
+            console.log('Fetching device status from:', `/api/devices/${deviceId}`);
+            fetch(`/api/devices/${deviceId}`)
+                .then(response => {
+                    console.log('Device status response:', response.status);
+                    return response.json();
+                })
+                .then(device => {
+                    console.log('Device data:', device);
+                    if (!device) {
+                        console.error('No device data received');
+                        return;
+                    }
                     
                     const commands = deviceCommands[deviceType] || [];
+                    console.log('Available commands for device type:', deviceType, commands);
+                    
+                    if (commands.length === 0) {
+                        console.error('No commands found for device type:', deviceType);
+                        modalBody.innerHTML = '<div class="alert alert-warning">没有可用的控制命令</div>';
+                        return;
+                    }
+
                     commands.forEach(cmd => {
+                        console.log('Creating control for command:', cmd);
                         const controlDiv = document.createElement('div');
                         controlDiv.className = 'mb-3';
                         
@@ -500,6 +517,18 @@
                 }
             });
         };
+
+        // 初始化模态框
+        const controlModal = new bootstrap.Modal(document.getElementById('controlModal'), {
+            keyboard: true,
+            focus: true
+        });
+
+        // 监听模态框关闭事件
+        document.getElementById('controlModal').addEventListener('hidden.bs.modal', function () {
+            // 移除所有焦点
+            document.activeElement.blur();
+        });
 
         // 定期更新设备列表
         setInterval(updateDeviceList, UPDATE_INTERVAL);

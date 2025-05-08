@@ -302,7 +302,7 @@ class AirConditioner(BaseDevice):
             self.power_consumption = 0
         elif cmd_type == "set_temp":
             try:
-                temp = float(command.get("temperature", 26))
+                temp = float(command.get("temp", 26))
                 self.temp = max(16, min(30, temp))
             except (ValueError, TypeError):
                 self.error_state = "无效的温度值"
@@ -313,7 +313,7 @@ class AirConditioner(BaseDevice):
             else:
                 self.error_state = "无效的模式"
         elif cmd_type == "set_fan_speed":
-            speed = command.get("speed", "auto")
+            speed = command.get("fan_speed", "auto")
             if speed in ["auto", "low", "medium", "high"]:
                 self.fan_speed = speed
             else:

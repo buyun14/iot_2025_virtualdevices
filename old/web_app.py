@@ -124,6 +124,17 @@ def add_device():
     
     return jsonify({'message': 'Device added successfully'})
 
+@app.route('/api/devices/<device_id>', methods=['GET'])
+def get_device(device_id):
+    """获取单个设备状态"""
+    print(f"Getting status for device: {device_id}")
+    if device_id not in devices:
+        print(f"Device not found: {device_id}")
+        return jsonify({'error': 'Device not found'}), 404
+    device_data = devices[device_id].to_dict()
+    print(f"Device data: {device_data}")
+    return jsonify(device_data)
+
 @app.route('/api/devices/<device_id>', methods=['DELETE'])
 def remove_device(device_id):
     """删除设备"""

@@ -1,0 +1,5 @@
+pytest==7.4.0
+pytest-mqtt==0.1.0
+pytest-mock==3.12.0
+paho-mqtt==1.6.1
+python-dotenv==1.0.0

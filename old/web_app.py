@@ -6,7 +6,7 @@
 """
 
 from flask import Flask, render_template, jsonify, request
-from devices import (
+from .devices import (
     Light, Thermostat, DoorLock, Blind,
     AirConditioner, SmokeDetector, Fan, Plug
 )

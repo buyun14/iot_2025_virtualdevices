@@ -1,0 +1,7 @@
+Metadata-Version: 2.4
+Name: virtual_devices_IOT
+Version: 0.1
+Requires-Dist: flask
+Requires-Dist: paho-mqtt
+Requires-Dist: python-dotenv
+Dynamic: requires-dist
